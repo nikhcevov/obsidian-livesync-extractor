@@ -1,0 +1,12 @@
+.git
+.gitmodules
+node_modules
+publisher/node_modules
+publisher/dist
+public
+state
+.env
+*.md
+!site/archetypes/**/*.md
+.cursor
+uploads

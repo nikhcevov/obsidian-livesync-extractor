@@ -1,0 +1,200 @@
+import { unlink } from "node:fs/promises";
+import { join } from "node:path";
+import { config } from "./config.js";
+import { classifyDoc } from "./extractor/filter.js";
+import { ImageIndex } from "./extractor/imageIndex.js";
+import { reconstructText } from "./extractor/reconstruct.js";
+import { getDoc, listAllDocIds } from "./couchdb/client.js";
+import { log } from "./logger.js";
+import { processFrontmatter } from "./markdown/frontmatter.js";
+import { processImages } from "./markdown/images.js";
+import { removePost, writePost } from "./markdown/writer.js";
+import {
+  applyPostRefs,
+  clearPostRefs,
+  loadAllRefsWithPostIds,
+} from "./state/refs.js";
+import { Debouncer } from "./watcher/debouncer.js";
+import { runHugoBuild, verifyHugo } from "./hugo/build.js";
+
+export class Publisher {
+  readonly imageIndex = new ImageIndex();
+  private debouncer: Debouncer;
+  private postPaths = new Map<string, string>();
+
+  constructor() {
+    this.debouncer = new Debouncer(
+      (id) => this.processDoc(id),
+      () => runHugoBuild().then(() => {}),
+    );
+  }
+
+  async start(fullBootstrap: boolean): Promise<void> {
+    await verifyHugo();
+    await this.seedImageIndex();
+    const refs = await loadAllRefsWithPostIds();
+    this.imageIndex.rebuildReverseFromRefs(refs);
+    await this.loadPostPaths();
+
+    if (fullBootstrap) {
+      await this.bootstrapPosts();
+      await runHugoBuild();
+    }
+
+    log.info({ fullBootstrap }, "publisher_ready");
+  }
+
+  schedule(docId: string): void {
+    this.debouncer.scheduleDoc(docId);
+  }
+
+  scheduleBuild(): void {
+    this.debouncer.scheduleBuild();
+  }
+
+  async handleChange(change: {
+    id: string;
+    deleted: boolean;
+    doc?: Record<string, unknown>;
+  }): Promise<void> {
+    log.info({ id: change.id, deleted: change.deleted }, "change_received");
+
+    if (change.deleted) {
+      const path =
+        this.postPaths.get(change.id) ??
+        (change.id.endsWith(".md") ? change.id : undefined);
+      if (path) {
+        await this.unpublishPost(change.id, path);
+        this.scheduleBuild();
+      }
+      const imgPath =
+        typeof change.doc?.path === "string" ? change.doc.path : undefined;
+      this.imageIndex.remove(change.id, imgPath);
+      let posts = this.imageIndex.getPostsForImage(change.id);
+      if (posts.length === 0) posts = [...this.postPaths.keys()];
+      for (const postId of posts) this.schedule(postId);
+      return;
+    }
+
+    const doc = change.doc;
+    if (!doc) {
+      this.schedule(change.id);
+      return;
+    }
+
+    const kind = classifyDoc(doc);
+    if (kind === "image") {
+      const path = String(doc.path);
+      this.imageIndex.upsert(change.id, path);
+      let posts = this.imageIndex.getPostsForImage(change.id);
+      if (posts.length === 0) posts = [...this.postPaths.keys()];
+      for (const postId of posts) this.schedule(postId);
+      return;
+    }
+
+    if (kind === "post") {
+      const path = String(doc.path);
+      this.postPaths.set(change.id, path);
+      this.schedule(change.id);
+    }
+  }
+
+  private async seedImageIndex(): Promise<void> {
+    const ids = await listAllDocIds();
+    log.info({ count: ids.length }, "bootstrap_scan");
+    for (const id of ids) {
+      const doc = await getDoc(id);
+      if (!doc) continue;
+      if (classifyDoc(doc) === "image") {
+        this.imageIndex.upsert(id, String(doc.path));
+      }
+    }
+  }
+
+  private async loadPostPaths(): Promise<void> {
+    const ids = await listAllDocIds();
+    for (const id of ids) {
+      const doc = await getDoc(id);
+      if (!doc) continue;
+      if (classifyDoc(doc) === "post") {
+        this.postPaths.set(id, String(doc.path));
+      }
+    }
+  }
+
+  private async bootstrapPosts(): Promise<void> {
+    for (const [id] of this.postPaths) {
+      await this.processDoc(id);
+    }
+  }
+
+  private async processDoc(docId: string): Promise<void> {
+    const doc = await getDoc(docId);
+    if (!doc) {
+      const path = this.postPaths.get(docId);
+      if (path) await this.unpublishPost(docId, path);
+      return;
+    }
+
+    if (classifyDoc(doc) !== "post") return;
+
+    const path = String(doc.path);
+    this.postPaths.set(docId, path);
+
+    if (doc._deleted || doc.deleted) {
+      await this.unpublishPost(docId, path);
+      return;
+    }
+
+    const reconstructed = await reconstructText(docId);
+    if (!reconstructed) {
+      log.warn({ docId }, "doc_skipped");
+      return;
+    }
+
+    const fm = processFrontmatter(
+      reconstructed.text,
+      reconstructed.path,
+      reconstructed.mtime,
+    );
+
+    if (fm.skip) {
+      await this.unpublishPost(docId, path);
+      log.info({ docId, reason: fm.reason }, "doc_skipped");
+      return;
+    }
+
+    const images = await processImages(fm.content!, this.imageIndex);
+    await writePost(path, images.markdown);
+
+    for (const imageId of images.imageDocIds) {
+      this.imageIndex.linkPostToImage(docId, imageId);
+    }
+
+    await applyPostRefs(
+      docId,
+      { images: images.imageDocIds, files: images.files },
+      (file) => this.removeImageFile(file),
+    );
+
+    if (images.pending.length > 0) {
+      log.debug({ docId, pending: images.pending }, "images_pending");
+    }
+  }
+
+  private async unpublishPost(docId: string, path: string): Promise<void> {
+    await removePost(path);
+    this.postPaths.delete(docId);
+    await clearPostRefs(docId, (file) => this.removeImageFile(file));
+  }
+
+  private async removeImageFile(filename: string): Promise<void> {
+    const file = join(config.imageDir, filename);
+    try {
+      await unlink(file);
+    } catch (err: unknown) {
+      const e = err as NodeJS.ErrnoException;
+      if (e.code !== "ENOENT") throw err;
+    }
+  }
+}

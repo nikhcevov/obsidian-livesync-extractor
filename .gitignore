@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.env
+/public/
+/state/
+/site/content/posts/*.md
+/site/static/img/*
+!site/content/posts/.gitkeep
+!site/static/img/.gitkeep
+.DS_Store
+*.log
