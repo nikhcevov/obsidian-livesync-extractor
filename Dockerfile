@@ -26,6 +26,10 @@ RUN if [ ! -f site/themes/PaperMod/theme.toml ]; then \
     fi
 
 FROM node:20-bookworm-slim
+ARG VERSION=dev
+LABEL org.opencontainers.image.title="livesync-publisher" \
+    org.opencontainers.image.version="${VERSION}"
+ENV APP_VERSION="${VERSION}"
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gettext-base tini gosu ca-certificates \
     && rm -rf /var/lib/apt/lists/*

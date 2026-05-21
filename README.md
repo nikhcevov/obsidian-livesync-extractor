@@ -167,10 +167,42 @@ tags:
 
 Structured log events: `change_received`, `doc_written`, `doc_deleted`, `doc_skipped`, `image_missing`, `build_started`, `build_finished`, `build_failed`.
 
+## Versioning and releases
+
+Version lives in `publisher/package.json` (currently `0.1.0`). That value is logged at startup (`version` in every JSON log line) and baked into the Docker image label `org.opencontainers.image.version`.
+
+**Release flow:**
+
+1. Bump version in `publisher/package.json` (semver: `MAJOR.MINOR.PATCH`).
+2. Commit and push to `main` → CI publishes `ghcr.io/<owner>/livesync-publisher:latest` and `sha-<commit>`.
+3. Tag the same commit (tag must match `package.json`, including the `v` prefix):
+
+```bash
+git tag v0.2.0
+git push origin v0.2.0
+```
+
+CI fails if `v0.2.0` ≠ `package.json` version.
+
+4. Tag push → CI also publishes immutable tags `0.2.0`, `0.2`, `0`, creates a GitHub Release, and attaches release notes.
+
+**Pin production** to a version tag instead of `latest`:
+
+```yaml
+image: ghcr.io/<owner>/livesync-publisher:0.2.0
+```
+
+Check the running image:
+
+```bash
+docker inspect livesync-publisher --format '{{index .Config.Labels "org.opencontainers.image.version"}}'
+docker logs livesync-publisher 2>&1 | head -1   # "version":"0.2.0" in JSON
+```
+
 ## Build image locally
 
 ```bash
-docker build -t livesync-publisher:local .
+docker build --build-arg VERSION=0.1.0-local -t livesync-publisher:local .
 ```
 
 ## Deferred / out of scope
