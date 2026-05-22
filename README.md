@@ -217,23 +217,34 @@ Structured log events: `change_received`, `doc_written`, `doc_deleted`, `doc_ski
 
 ## Versioning and releases
 
-Version lives in `publisher/package.json` (currently `0.1.0`). That value is logged at startup (`version` in every JSON log line) and baked into the Docker image label `org.opencontainers.image.version`.
+Version lives in `publisher/package.json`. That value is logged at startup (`version` in every JSON log line) and baked into the Docker image label `org.opencontainers.image.version`.
 
 **Release flow (automated tags):**
 
-1. Bump `version` in `publisher/package.json` (semver: `MAJOR.MINOR.PATCH`).
-2. Commit **including** the `package.json` change and push to `main`.
+1. Land feature and fix commits on `main` with normal messages (`feat:`, `fix:`, etc.).
+2. Bump `version` in `publisher/package.json` in a **separate** release commit (semver: `MAJOR.MINOR.PATCH`).
+3. Push to `main`. Do not create the tag manually.
 
 ```bash
-# example
+# 1. land changes first (examples)
+git commit -m "fix(publisher): remove posts on LiveSync soft delete"
+git commit -m "feat(dev): add one-command local stack"
+
+# 2. bump version (separate commit)
 npm version patch --prefix publisher --no-git-tag-version
 git add publisher/package.json publisher/package-lock.json
-git commit -m "chore: release v0.2.0"
+git commit -m "chore(release): bump version to 0.1.1"
+
+# 3. push — CI creates tag and release
 git push origin main
 ```
 
-3. GitHub Actions on `main` detects the `package.json` change, creates tag `v0.2.0` if it does not exist yet, and pushes it.
-4. The tag push runs a second workflow: publishes `ghcr.io/<owner>/livesync-publisher:0.2.0` (and `0.2`, `0`), and creates a GitHub Release with notes.
+Use `npm version minor` or `npm version major` when the release is not a patch.
+
+The bump commit subject is enough (`chore(release): bump version to 0.1.1`). A short body is optional for migration or breaking-change notes. The full changelog comes from earlier commits and GitHub auto-generated release notes — do not restate every change in the bump commit.
+
+4. GitHub Actions on `main` detects the `package.json` change, creates tag `v0.1.1` if it does not exist yet, and pushes it.
+5. The tag push runs a second workflow: publishes `ghcr.io/<owner>/livesync-publisher:0.1.1` (and `0.1`, `0`), and creates a GitHub Release with notes.
 
 The `main` push still publishes `latest` and `sha-<commit>` in parallel.
 
@@ -244,14 +255,14 @@ Manual tags are optional; CI fails a tag build if `vX.Y.Z` ≠ `package.json` ve
 **Pin production** to a version tag instead of `latest`:
 
 ```yaml
-image: ghcr.io/<owner>/livesync-publisher:0.2.0
+image: ghcr.io/<owner>/livesync-publisher:0.1.1
 ```
 
 Check the running image:
 
 ```bash
 docker inspect livesync-publisher --format '{{index .Config.Labels "org.opencontainers.image.version"}}'
-docker logs livesync-publisher 2>&1 | head -1   # "version":"0.2.0" in JSON
+docker logs livesync-publisher 2>&1 | head -1   # "version":"0.1.1" in JSON
 ```
 
 ## Build image locally
