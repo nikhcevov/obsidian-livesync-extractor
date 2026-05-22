@@ -1,0 +1,7 @@
+{
+  "type": "plain",
+  "path": "posts/hello-world.md",
+  "children": ["h:dev-post-hello-leaf-1"],
+  "mtime": __MTIME__,
+  "ctime": __MTIME__
+}

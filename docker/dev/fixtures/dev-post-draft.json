@@ -1,0 +1,7 @@
+{
+  "type": "plain",
+  "path": "posts/draft-post.md",
+  "children": ["h:dev-post-draft-leaf-1"],
+  "mtime": __MTIME__,
+  "ctime": __MTIME__
+}

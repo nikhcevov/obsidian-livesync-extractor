@@ -1,0 +1,7 @@
+{
+  "type": "plain",
+  "path": "posts/with-image.md",
+  "children": ["h:dev-post-with-image-leaf-1"],
+  "mtime": __MTIME__,
+  "ctime": __MTIME__
+}

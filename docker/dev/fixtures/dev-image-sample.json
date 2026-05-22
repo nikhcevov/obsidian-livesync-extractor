@@ -1,0 +1,8 @@
+{
+  "type": "newnote",
+  "path": "attachments/example.png",
+  "children": ["h:dev-image-sample-leaf-1"],
+  "mtime": __MTIME__,
+  "ctime": __MTIME__,
+  "size": 12790
+}

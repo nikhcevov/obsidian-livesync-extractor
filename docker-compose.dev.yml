@@ -16,12 +16,31 @@ services:
       timeout: 5s
       retries: 5
 
+  couchdb-seed:
+    image: curlimages/curl:8.12.1
+    restart: "no"
+    depends_on:
+      couchdb:
+        condition: service_healthy
+    environment:
+      COUCHDB_URL: http://couchdb:5984
+      COUCHDB_DB: ${COUCHDB_DB:-obsidian-livesync-v2}
+      COUCHDB_USER: admin
+      COUCHDB_PASSWORD: ${COUCHDB_PASSWORD:-changeme}
+    volumes:
+      - ./docker/dev/seed.sh:/seed.sh:ro
+      - ./docker/dev/fixtures:/fixtures:ro
+      - ./docker/dev/example.png:/assets/example.png:ro
+    entrypoint: ["/bin/sh", "/seed.sh"]
+
   livesync-publisher:
     build: .
     restart: unless-stopped
     depends_on:
       couchdb:
         condition: service_healthy
+      couchdb-seed:
+        condition: service_completed_successfully
     environment:
       COUCHDB_URL: http://couchdb:5984
       COUCHDB_DB: ${COUCHDB_DB:-obsidian-livesync-v2}
@@ -37,10 +56,19 @@ services:
       PUID: ${PUID:-1000}
       PGID: ${PGID:-1000}
     volumes:
-      - public_data:/public
-      - state_data:/state
+      - ./dev/public:/public
+      - ./dev/state:/state
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - livesync-publisher
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./dev/public:/public:ro
 
 volumes:
   couchdb_data:
-  public_data:
-  state_data:

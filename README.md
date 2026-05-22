@@ -102,12 +102,67 @@ Optional: mount `/site/content` to inspect generated markdown on the host.
 
 ## Local development
 
+One command starts the full stack: CouchDB, seed data, publisher, and a static site preview.
+
 ```bash
-cp .env.example .env
-docker compose -f docker-compose.dev.yml up --build
+cp .env.example .env   # optional overrides
+make dev
+# or: docker compose -f docker-compose.dev.yml up --build
 ```
 
-CouchDB Fauxton: http://localhost:5984/\_utils
+### Dev stack
+
+| Service              | Port | Purpose                                      |
+| -------------------- | ---- | -------------------------------------------- |
+| `couchdb`            | 5984 | LiveSync database + Fauxton UI               |
+| `couchdb-seed`       | —    | One-shot: inserts sample LiveSync documents  |
+| `livesync-publisher` | —    | Watches CouchDB, runs Hugo, writes `/public` |
+| `caddy`              | 8080 | Serves `dev/public` as the blog              |
+
+After startup:
+
+- Site: http://localhost:8080/
+- Sample post: http://localhost:8080/blog/hello-from-livesync/
+- CouchDB Fauxton: http://localhost:5984/\_utils (user `admin`, password `changeme` by default)
+
+Seed fixtures live in `docker/dev/fixtures/` and include a published post, a draft (`published: false`), and a post with an embedded image. Re-seeding is skipped once `dev-seed-marker` exists in the database.
+
+Host bind mounts:
+
+| Path          | Purpose                          |
+| ------------- | -------------------------------- |
+| `dev/public/` | Hugo output (served by Caddy)    |
+| `dev/state/`  | `last_seq`, image refs, refcount |
+
+### Make targets
+
+```bash
+make dev        # up --build
+make dev-down   # stop containers
+make dev-reset  # down -v, wipe dev/public and dev/state
+make dev-logs   # follow publisher logs
+make dev-seed   # re-run seed (no-op if already seeded)
+```
+
+Fresh start from scratch:
+
+```bash
+make dev-reset && make dev
+```
+
+`docker-compose.dev.yml` sets `COUCHDB_AUTO_CREATE=true` and `SITE_BASE_URL=http://localhost:8080/` so a fresh CouchDB gets the LiveSync database and Hugo links resolve correctly.
+
+### Connect Obsidian (optional)
+
+Point **Self-hosted LiveSync** at the local CouchDB:
+
+- URL: `http://localhost:5984`
+- Database: `obsidian-livesync-v2`
+- User / password: `admin` / `changeme` (or your `.env` values)
+
+Put posts under `posts/` with `published: true` in frontmatter — the publisher picks up `_changes` within a few seconds.
+
+### Build and test without Docker
 
 Build TypeScript locally:
 
@@ -121,19 +176,10 @@ Run unit tests (Vitest):
 cd publisher && npm test
 ```
 
-`docker-compose.dev.yml` sets `COUCHDB_AUTO_CREATE=true` so a fresh CouchDB gets the LiveSync database without manual `curl -X PUT`.
-
 Init PaperMod submodule (optional; Docker build clones it automatically):
 
 ```bash
 git submodule update --init --recursive
-```
-
-Preview static output:
-
-```bash
-docker compose -f docker-compose.dev.yml exec livesync-publisher ls /public
-python3 -m http.server 8080 --directory ./public  # if you copy /public out
 ```
 
 ## Obsidian setup
@@ -156,14 +202,16 @@ tags:
 
 ## Troubleshooting
 
-| Symptom                                       | Check                                                                                                                                                                                                                                                                                                        |
-| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| No posts on site                              | `published: true` set? Path under `posts/`?                                                                                                                                                                                                                                                                  |
-| Post not updating                             | Publisher logs (`LOG_LEVEL=debug`), CouchDB connectivity                                                                                                                                                                                                                                                     |
-| Images broken                                 | Image doc replicated? Supported extension? Under size limit?                                                                                                                                                                                                                                                 |
-| Hugo build fails                              | `docker logs` — missing theme or invalid frontmatter                                                                                                                                                                                                                                                         |
-| Restart re-processes everything               | Delete `/state/last_seq.json` to force full bootstrap                                                                                                                                                                                                                                                        |
-| `You are not a server admin` (401) on startup | `COUCHDB_USER` must be `admin`; password must match the existing CouchDB volume. After changing `COUCHDB_PASSWORD`, run `docker compose -f docker-compose.dev.yml down -v` to reset `couchdb_data`. If CouchDB logs show `Missing system database _users`, the volume is corrupt — `down -v` fixes that too. |
+| Symptom                                       | Check                                                                                                                                                                                                                                                                        |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| No posts on site                              | `published: true` set? Path under `posts/`?                                                                                                                                                                                                                                  |
+| Post not updating                             | Publisher logs (`LOG_LEVEL=debug`), CouchDB connectivity                                                                                                                                                                                                                     |
+| Images broken                                 | Image doc replicated? Supported extension? Under size limit?                                                                                                                                                                                                                 |
+| Hugo build fails                              | `docker logs` — missing theme or invalid frontmatter                                                                                                                                                                                                                         |
+| Restart re-processes everything               | Delete `dev/state/last_seq.json` to force full bootstrap                                                                                                                                                                                                                     |
+| Site empty after first start                  | Wait for Hugo build in publisher logs (`build_finished`), or check `dev/public/`                                                                                                                                                                                             |
+| Seed docs missing                             | Run `make dev-seed`, or `make dev-reset && make dev` for a clean database                                                                                                                                                                                                    |
+| `You are not a server admin` (401) on startup | `COUCHDB_USER` must be `admin`; password must match the existing CouchDB volume. After changing `COUCHDB_PASSWORD`, run `make dev-reset` to reset `couchdb_data`. If CouchDB logs show `Missing system database _users`, the volume is corrupt — `dev-reset` fixes that too. |
 
 Structured log events: `change_received`, `doc_written`, `doc_deleted`, `doc_skipped`, `image_missing`, `build_started`, `build_finished`, `build_failed`.
 

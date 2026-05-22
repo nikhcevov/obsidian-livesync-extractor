@@ -3,6 +3,10 @@ dist/
 .env
 /public/
 /state/
+/dev/public/*
+!/dev/public/.gitkeep
+/dev/state/*
+!/dev/state/.gitkeep
 /site/content/posts/*.md
 /site/static/img/*
 !site/content/posts/.gitkeep
