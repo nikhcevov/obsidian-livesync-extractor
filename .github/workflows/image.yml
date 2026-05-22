@@ -18,6 +18,12 @@ jobs:
   auto-tag:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.bump.outputs.changed }}
+      version: ${{ steps.bump.outputs.version }}
+      tag: ${{ steps.bump.outputs.tag }}
+      major: ${{ steps.bump.outputs.major }}
+      major_minor: ${{ steps.bump.outputs.major_minor }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -26,6 +32,12 @@ jobs:
       - id: bump
         run: |
           set -e
+          VER=$(node -p "require('./publisher/package.json').version")
+          TAG="v${VER}"
+          echo "version=${VER}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "major=${VER%%.*}" >> "$GITHUB_OUTPUT"
+          echo "major_minor=${VER%.*}" >> "$GITHUB_OUTPUT"
           if [ "$(git rev-list --count HEAD)" -ge 2 ]; then
             if ! git diff HEAD^ HEAD -- publisher/package.json | grep -q .; then
               echo "package.json unchanged, skip"
@@ -33,10 +45,6 @@ jobs:
               exit 0
             fi
           fi
-          VER=$(node -p "require('./publisher/package.json').version")
-          TAG="v${VER}"
-          echo "version=${VER}" >> "$GITHUB_OUTPUT"
-          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
           echo "changed=true" >> "$GITHUB_OUTPUT"
           git fetch --tags origin
           if git rev-parse "$TAG" >/dev/null 2>&1; then
@@ -70,7 +78,8 @@ jobs:
       - run: npm test
 
   build:
-    needs: test
+    needs: [test, auto-tag]
+    if: always() && needs.test.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -110,6 +119,9 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
+            type=raw,value=${{ needs.auto-tag.outputs.version }},enable=${{ github.ref == 'refs/heads/main' && needs.auto-tag.outputs.changed == 'true' }}
+            type=raw,value=${{ needs.auto-tag.outputs.major_minor }},enable=${{ github.ref == 'refs/heads/main' && needs.auto-tag.outputs.changed == 'true' }}
+            type=raw,value=${{ needs.auto-tag.outputs.major }},enable=${{ github.ref == 'refs/heads/main' && needs.auto-tag.outputs.changed == 'true' }}
             type=sha,prefix=sha-
 
       - uses: docker/build-push-action@v5
@@ -125,12 +137,17 @@ jobs:
           cache-to: type=gha,mode=max
 
   release:
-    needs: build
-    if: github.ref_type == 'tag'
+    needs: [build, auto-tag]
+    if: |
+      always() &&
+      needs.build.result == 'success' &&
+      (github.ref_type == 'tag' ||
+        (needs.auto-tag.result == 'success' && needs.auto-tag.outputs.changed == 'true'))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || needs.auto-tag.outputs.tag }}
           generate_release_notes: true

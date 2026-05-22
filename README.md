@@ -243,10 +243,9 @@ Use `npm version minor` or `npm version major` when the release is not a patch.
 
 The bump commit subject is enough (`chore(release): bump version to 0.1.1`). A short body is optional for migration or breaking-change notes. The full changelog comes from earlier commits and GitHub auto-generated release notes — do not restate every change in the bump commit.
 
-4. GitHub Actions on `main` detects the `package.json` change, creates tag `v0.1.1` if it does not exist yet, and pushes it.
-5. The tag push runs a second workflow: publishes `ghcr.io/<owner>/livesync-publisher:0.1.1` (and `0.1`, `0`), and creates a GitHub Release with notes.
+4. GitHub Actions on `main` detects the `package.json` change, creates tag `v0.1.1`, publishes versioned Docker tags, and creates a GitHub Release — all in one workflow run.
 
-The `main` push still publishes `latest` and `sha-<commit>` in parallel.
+The same push also publishes `latest` and `sha-<commit>`. Pushing an existing tag manually (e.g. to retry) still runs the tag workflow as a fallback.
 
 Manual tags are optional; CI fails a tag build if `vX.Y.Z` ≠ `package.json` version.
 
