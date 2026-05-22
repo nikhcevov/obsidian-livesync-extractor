@@ -70,7 +70,9 @@ export function startChangesFeed(
       void (async () => {
         try {
           const doc = change.doc as Record<string, unknown> | undefined;
-          const deleted = Boolean(change.deleted || doc?._deleted);
+          const deleted = Boolean(
+            change.deleted || doc?._deleted || doc?.deleted,
+          );
           await onChange({ id, deleted, doc });
           await saveLastSeq(change.seq);
         } catch (err) {
@@ -96,7 +98,7 @@ export function shouldProcessChange(
   doc: Record<string, unknown> | undefined,
   deleted: boolean,
 ): boolean {
-  if (deleted) return true;
+  if (deleted || doc?._deleted || doc?.deleted) return true;
   if (!doc) return false;
   return classifyDoc(doc) !== "ignored";
 }

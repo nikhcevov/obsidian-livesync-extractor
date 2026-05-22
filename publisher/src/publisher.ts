@@ -60,8 +60,11 @@ export class Publisher {
     log.info({ id: change.id, deleted: change.deleted }, "change_received");
 
     if (change.deleted) {
+      const docPath =
+        typeof change.doc?.path === "string" ? change.doc.path : undefined;
       const path =
         this.postPaths.get(change.id) ??
+        docPath ??
         (change.id.endsWith(".md") ? change.id : undefined);
       if (path) {
         await this.unpublishPost(change.id, path);
