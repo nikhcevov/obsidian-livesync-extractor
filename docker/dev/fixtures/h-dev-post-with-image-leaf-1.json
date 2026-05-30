@@ -1,4 +1,4 @@
 {
   "type": "leaf",
-  "data": "---\ntitle: Post With Image\npublished: true\ndate: 2026-05-21\ntags:\n  - images\n---\n\n# Image Test\n\nExample icon from dev fixtures:\n\n![[example.png]]\n"
+  "data": "---\npost_title: Post With Image\npost_published: true\npost_date: 2026-05-21\npost_tags:\n  - images\n---\n\n# Image Test\n\nExample icon from dev fixtures:\n\n![[example.png]]\n"
 }

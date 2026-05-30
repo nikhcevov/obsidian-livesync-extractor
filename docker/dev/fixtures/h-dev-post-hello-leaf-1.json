@@ -1,4 +1,4 @@
 {
   "type": "leaf",
-  "data": "---\ntitle: Hello from LiveSync\npublished: true\ndate: 2026-05-20\ntags:\n  - dev\n---\n\n# Hello from LiveSync\n\nThis post was seeded into CouchDB for local publisher testing.\n\nEdit it in Fauxton or push changes from Obsidian LiveSync.\n"
+  "data": "---\npost_title: Hello from LiveSync\npost_published: true\npost_slug: hello-from-livesync\npost_date: 2026-05-20\npost_tags:\n  - dev\n---\n\n# Hello from LiveSync\n\nThis post was seeded into CouchDB for local publisher testing.\n\nEdit it in Fauxton or push changes from Obsidian LiveSync.\n"
 }

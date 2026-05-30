@@ -1,4 +1,4 @@
 {
   "type": "leaf",
-  "data": "---\ntitle: Draft Post\npublished: false\ndate: 2026-05-20\n---\n\nThis draft should not appear on the site.\n"
+  "data": "---\npost_title: Draft Post\npost_published: false\npost_date: 2026-05-20\n---\n\nThis draft should not appear on the site.\n"
 }

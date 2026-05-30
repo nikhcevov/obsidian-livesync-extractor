@@ -6,13 +6,17 @@ import { ImageIndex } from "./extractor/imageIndex.js";
 import { reconstructText } from "./extractor/reconstruct.js";
 import { getDoc, listAllDocIds } from "./couchdb/client.js";
 import { log } from "./logger.js";
-import { processFrontmatter } from "./markdown/frontmatter.js";
+import {
+  processFrontmatter,
+  slugFromVaultPath,
+} from "./markdown/frontmatter.js";
 import { processImages } from "./markdown/images.js";
 import { removePost, writePost } from "./markdown/writer.js";
 import {
   applyPostRefs,
   clearPostRefs,
   loadAllRefsWithPostIds,
+  loadPostRefs,
 } from "./state/refs.js";
 import { Debouncer } from "./watcher/debouncer.js";
 import { runHugoBuild, verifyHugo } from "./hugo/build.js";
@@ -167,8 +171,14 @@ export class Publisher {
       return;
     }
 
+    const slug = fm.slug!;
+    const oldRefs = await loadPostRefs(docId);
+    if (oldRefs?.slug && oldRefs.slug !== slug) {
+      await removePost(oldRefs.slug);
+    }
+
     const images = await processImages(fm.content!, this.imageIndex);
-    await writePost(path, images.markdown);
+    await writePost(slug, images.markdown);
 
     for (const imageId of images.imageDocIds) {
       this.imageIndex.linkPostToImage(docId, imageId);
@@ -176,7 +186,7 @@ export class Publisher {
 
     await applyPostRefs(
       docId,
-      { images: images.imageDocIds, files: images.files },
+      { images: images.imageDocIds, files: images.files, slug },
       (file) => this.removeImageFile(file),
     );
 
@@ -186,7 +196,9 @@ export class Publisher {
   }
 
   private async unpublishPost(docId: string, path: string): Promise<void> {
-    await removePost(path);
+    const refs = await loadPostRefs(docId);
+    const slug = refs?.slug ?? slugFromVaultPath(path);
+    await removePost(slug);
     this.postPaths.delete(docId);
     await clearPostRefs(docId, (file) => this.removeImageFile(file));
   }

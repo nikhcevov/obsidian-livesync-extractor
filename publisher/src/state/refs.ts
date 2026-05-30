@@ -13,6 +13,7 @@ import { log } from "../logger.js";
 export interface PostRefs {
   images: string[];
   files: string[];
+  slug?: string;
 }
 
 let chain: Promise<void> = Promise.resolve();
@@ -134,7 +135,11 @@ export async function applyPostRefs(
       }
     }
 
-    if (newRefs.images.length === 0 && newRefs.files.length === 0) {
+    if (
+      newRefs.images.length === 0 &&
+      newRefs.files.length === 0 &&
+      !newRefs.slug
+    ) {
       try {
         await unlink(refsPath(postDocId));
       } catch (err: unknown) {
@@ -146,6 +151,7 @@ export async function applyPostRefs(
         postDocId,
         images: newRefs.images,
         files: newRefs.files,
+        slug: newRefs.slug,
       });
     }
 

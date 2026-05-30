@@ -49,17 +49,18 @@ Posts are read from CouchDB paths under `posts/` (configurable via `WATCH_FOLDER
 
 | Condition                         | Result                               |
 | --------------------------------- | ------------------------------------ |
-| `published: true` in frontmatter  | Published to site                    |
-| `published` missing or not `true` | Removed from site (if was published) |
+| `post_published: true` in frontmatter  | Published to site                    |
+| `post_published` missing or not `true` | Removed from site (if was published) |
 | Document deleted in CouchDB       | Removed from site                    |
 | Conflicted revision               | Skipped (logged)                     |
 
-Minimal auto-generated frontmatter when missing:
+Minimal auto-generated Hugo frontmatter when missing:
 
 ```yaml
 ---
 title: "My Article"
 date: 2026-05-20
+slug: my-article
 ---
 ```
 
@@ -125,7 +126,7 @@ After startup:
 - Sample post: http://localhost:8080/blog/hello-from-livesync/
 - CouchDB Fauxton: http://localhost:5984/\_utils (user `admin`, password `changeme` by default)
 
-Seed fixtures live in `docker/dev/fixtures/` and include a published post, a draft (`published: false`), and a post with an embedded image. Re-seeding is skipped once `dev-seed-marker` exists in the database.
+Seed fixtures live in `docker/dev/fixtures/` and include a published post, a draft (`post_published: false`), and a post with an embedded image. Re-seeding is skipped once `dev-seed-marker` exists in the database.
 
 Host bind mounts:
 
@@ -160,7 +161,7 @@ Point **Self-hosted LiveSync** at the local CouchDB:
 - Database: `obsidian-livesync-v2`
 - User / password: `admin` / `changeme` (or your `.env` values)
 
-Put posts under `posts/` with `published: true` in frontmatter — the publisher picks up `_changes` within a few seconds.
+Put posts under `posts/` with `post_published: true` in frontmatter — the publisher picks up `_changes` within a few seconds.
 
 ### Build and test without Docker
 
@@ -190,13 +191,17 @@ git submodule update --init --recursive
 
 ```yaml
 ---
-title: "My Article"
-published: true
-date: 2026-05-20
-tags:
+post_published: true
+post_title: "My Article"
+post_slug: my-article
+post_description: "Short summary for SEO."
+post_tags:
   - homelab
+post_date: 2026-05-20
 ---
 ```
+
+All public post metadata lives in `post_*` fields. Obsidian `#tags`, frontmatter `tags`, and other vault properties stay private and are not published.
 
 4. Save — the publisher picks up changes via CouchDB `_changes` within a few seconds.
 
@@ -204,7 +209,7 @@ tags:
 
 | Symptom                                       | Check                                                                                                                                                                                                                                                                        |
 | --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| No posts on site                              | `published: true` set? Path under `posts/`?                                                                                                                                                                                                                                  |
+| No posts on site                              | `post_published: true` set? Path under `posts/`?                                                                                                                                                                                                                                  |
 | Post not updating                             | Publisher logs (`LOG_LEVEL=debug`), CouchDB connectivity                                                                                                                                                                                                                     |
 | Images broken                                 | Image doc replicated? Supported extension? Under size limit?                                                                                                                                                                                                                 |
 | Hugo build fails                              | `docker logs` — missing theme or invalid frontmatter                                                                                                                                                                                                                         |
