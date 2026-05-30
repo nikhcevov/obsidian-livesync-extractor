@@ -27,10 +27,6 @@ function hasConflicts(doc: Record<string, unknown>): boolean {
   return Array.isArray(c) && c.length > 0;
 }
 
-function underWatchFolder(path: string): boolean {
-  return config.watchFolders.some((folder) => path.startsWith(folder));
-}
-
 export function classifyDoc(doc: Record<string, unknown>): DocClass {
   const id = String(doc._id ?? "");
   if (id.startsWith("h:")) return "ignored";
@@ -43,7 +39,6 @@ export function classifyDoc(doc: Record<string, unknown>): DocClass {
   const path = typeof doc.path === "string" ? doc.path : "";
 
   if (type === "plain" && path) {
-    if (!underWatchFolder(path)) return "ignored";
     if (!path.endsWith(".md")) return "ignored";
     if (basename(path).startsWith(".")) return "ignored";
     return "post";

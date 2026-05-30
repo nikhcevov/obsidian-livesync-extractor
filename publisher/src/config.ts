@@ -61,7 +61,6 @@ export const config = {
   couchDbName: couch.couchDbName,
   couchHasAuth: couch.couchHasAuth,
   couchAutoCreate: parseBool("COUCHDB_AUTO_CREATE", false),
-  watchFolders: parseList("WATCH_FOLDERS", ["posts/"]),
   siteBaseUrl: optional("SITE_BASE_URL", "http://localhost/"),
   siteTitle: optional("SITE_TITLE", "My Blog"),
   siteLanguage: optional("SITE_LANGUAGE", "en"),

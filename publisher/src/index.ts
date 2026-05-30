@@ -36,7 +36,6 @@ async function verifyCouch(): Promise<void> {
 }
 
 async function main(): Promise<void> {
-  log.info({ watchFolders: config.watchFolders }, "starting");
   log.info(
     {
       host: config.couchServerUrl,

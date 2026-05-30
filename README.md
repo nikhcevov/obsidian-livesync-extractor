@@ -1,6 +1,6 @@
 # Obsidian LiveSync → Hugo Publisher
 
-Self-hosted publisher that watches an Obsidian LiveSync CouchDB database, rebuilds markdown posts from `posts/`, extracts embedded images, runs Hugo (PaperMod), and writes a static site to `/public` for your existing Caddy reverse proxy.
+Self-hosted publisher that watches an Obsidian LiveSync CouchDB database, rebuilds markdown notes with `post_published: true`, extracts embedded images, runs Hugo (PaperMod), and writes a static site to `/public` for your existing Caddy reverse proxy.
 
 No Git, no Obsidian on the server, no filesystem sync.
 
@@ -45,7 +45,7 @@ blog.example.com {
 
 ## Publishing rules
 
-Posts are read from CouchDB paths under `posts/` (configurable via `WATCH_FOLDERS`).
+Posts are any vault markdown note with `post_published: true` in frontmatter.
 
 | Condition                         | Result                               |
 | --------------------------------- | ------------------------------------ |
@@ -80,7 +80,6 @@ slug: my-article
 | `COUCHDB_USER`        | no       | —                   | Username if not in URL                      |
 | `COUCHDB_PASSWORD`    | no       | —                   | Password if not in URL                      |
 | `COUCHDB_AUTO_CREATE` | no       | `false`             | Create DB on startup if missing (dev)       |
-| `WATCH_FOLDERS`       | no       | `posts/`            | Comma-separated vault folders               |
 | `SITE_BASE_URL`       | no       | `http://localhost/` | Hugo `baseURL`                              |
 | `SITE_TITLE`          | no       | `My Blog`           | Site title                                  |
 | `SITE_LANGUAGE`       | no       | `en`                | Hugo language code                          |
@@ -161,7 +160,7 @@ Point **Self-hosted LiveSync** at the local CouchDB:
 - Database: `obsidian-livesync-v2`
 - User / password: `admin` / `changeme` (or your `.env` values)
 
-Put posts under `posts/` with `post_published: true` in frontmatter — the publisher picks up `_changes` within a few seconds.
+Any vault markdown note with `post_published: true` in frontmatter is published — the publisher picks up `_changes` within a few seconds.
 
 ### Build and test without Docker
 
@@ -186,8 +185,7 @@ git submodule update --init --recursive
 ## Obsidian setup
 
 1. Install **Self-hosted LiveSync** and connect to your CouchDB.
-2. Store blog posts under `posts/` in the vault.
-3. Add frontmatter to publish:
+2. Add frontmatter to any note you want on the site:
 
 ```yaml
 ---
@@ -203,13 +201,13 @@ post_date: 2026-05-20
 
 All public post metadata lives in `post_*` fields. Obsidian `#tags`, frontmatter `tags`, and other vault properties stay private and are not published.
 
-4. Save — the publisher picks up changes via CouchDB `_changes` within a few seconds.
+3. Save — the publisher picks up changes via CouchDB `_changes` within a few seconds.
 
 ## Troubleshooting
 
 | Symptom                                       | Check                                                                                                                                                                                                                                                                        |
 | --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| No posts on site                              | `post_published: true` set? Path under `posts/`?                                                                                                                                                                                                                                  |
+| No posts on site                              | `post_published: true` set?                                                                                                                                                                                                                                                       |
 | Post not updating                             | Publisher logs (`LOG_LEVEL=debug`), CouchDB connectivity                                                                                                                                                                                                                     |
 | Images broken                                 | Image doc replicated? Supported extension? Under size limit?                                                                                                                                                                                                                 |
 | Hugo build fails                              | `docker logs` — missing theme or invalid frontmatter                                                                                                                                                                                                                         |

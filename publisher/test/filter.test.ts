@@ -7,7 +7,6 @@ async function loadFilter() {
 describe("classifyDoc", () => {
   beforeEach(() => {
     vi.resetModules();
-    process.env.WATCH_FOLDERS = "posts/";
     process.env.IMAGE_EXTENSIONS = "png,jpg,jpeg";
   });
 
@@ -44,18 +43,18 @@ describe("classifyDoc", () => {
     ).toBe("ignored");
   });
 
-  it("classifies markdown under watch folder as post", async () => {
+  it("classifies vault markdown as post", async () => {
     const { classifyDoc } = await loadFilter();
     expect(
       classifyDoc({ _id: "x", type: "plain", path: "posts/hello.md" }),
     ).toBe("post");
   });
 
-  it("ignores markdown outside watch folder", async () => {
+  it("classifies markdown anywhere in vault as post", async () => {
     const { classifyDoc } = await loadFilter();
     expect(
       classifyDoc({ _id: "x", type: "plain", path: "notes/hello.md" }),
-    ).toBe("ignored");
+    ).toBe("post");
   });
 
   it("ignores hidden markdown filenames", async () => {
@@ -65,7 +64,7 @@ describe("classifyDoc", () => {
     ).toBe("ignored");
   });
 
-  it("ignores non-markdown under watch folder", async () => {
+  it("ignores non-markdown files", async () => {
     const { classifyDoc } = await loadFilter();
     expect(
       classifyDoc({ _id: "x", type: "plain", path: "posts/readme.txt" }),

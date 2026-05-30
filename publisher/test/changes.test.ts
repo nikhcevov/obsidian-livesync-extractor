@@ -7,7 +7,6 @@ async function loadChanges() {
 describe("shouldProcessChange", () => {
   beforeEach(() => {
     vi.resetModules();
-    process.env.WATCH_FOLDERS = "posts/";
     process.env.IMAGE_EXTENSIONS = "png,jpg,jpeg";
   });
 
