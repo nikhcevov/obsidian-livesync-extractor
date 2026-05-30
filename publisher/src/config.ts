@@ -75,10 +75,10 @@ export const config = {
     "svg",
     "avif",
   ]),
-  hugoSite: optional("HUGO_SITE", "/site"),
+  hugoSite: optional("HUGO_SITE", "/hugo"),
   hugoDest: optional("HUGO_DEST", "/public"),
   stateDir: optional("STATE_DIR", "/state"),
-  contentDir: optional("CONTENT_DIR", "/site/content"),
-  imageDir: optional("IMAGE_DIR", "/site/static/img"),
+  contentDir: optional("CONTENT_DIR", "/hugo/content"),
+  imageDir: optional("IMAGE_DIR", "/hugo/static/img"),
   hugoBin: optional("HUGO_BIN", "hugo"),
 } as const;

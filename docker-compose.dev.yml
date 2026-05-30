@@ -52,9 +52,9 @@ services:
       PUID: ${PUID:-1000}
       PGID: ${PGID:-1000}
     volumes:
+      - ./dev/hugo:/hugo
       - ./dev/public:/public
       - ./dev/state:/state
-      - ./dev/config:/config
 
   caddy:
     image: caddy:2-alpine

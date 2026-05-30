@@ -3,29 +3,25 @@ set -eu
 
 PUID="${PUID:-1000}"
 PGID="${PGID:-1000}"
-CONFIG_DIR="/config"
+HUGO_DIR="/hugo"
 
-mkdir -p "$CONFIG_DIR" /site /public /state /site/content/posts /site/static/img
+mkdir -p "$HUGO_DIR" /public /state "$HUGO_DIR/content/posts" "$HUGO_DIR/static/img"
 
-if [ -f "$CONFIG_DIR/hugo.toml" ]; then
-	cp "$CONFIG_DIR/hugo.toml" /site/hugo.toml
-elif [ -f "$CONFIG_DIR/hugo.yml" ]; then
-	cp "$CONFIG_DIR/hugo.yml" /site/hugo.yml
-elif [ -f "$CONFIG_DIR/hugo.yaml" ]; then
-	cp "$CONFIG_DIR/hugo.yaml" /site/hugo.yaml
-else
-	cp /app/defaults/hugo.toml "$CONFIG_DIR/hugo.toml"
-	cp "$CONFIG_DIR/hugo.toml" /site/hugo.toml
+if [ ! -f "$HUGO_DIR/hugo.toml" ] && \
+	[ ! -f "$HUGO_DIR/hugo.yml" ] && \
+	[ ! -f "$HUGO_DIR/hugo.yaml" ]; then
+	cp /app/defaults/hugo.toml "$HUGO_DIR/hugo.toml"
 fi
 
-for dir in archetypes themes content static; do
-	if [ -d "/app/site/$dir" ]; then
-		cp -rn "/app/site/$dir" "/site/" 2>/dev/null || true
+for dir in archetypes themes; do
+	if [ ! -d "$HUGO_DIR/$dir" ] && [ -d "/app/site/$dir" ]; then
+		mkdir -p "$HUGO_DIR/$dir"
+		cp -rn "/app/site/$dir/." "$HUGO_DIR/$dir/"
 	fi
 done
 
 if [ "$(id -u)" = "0" ]; then
-	chown -R "${PUID}:${PGID}" "$CONFIG_DIR" /site /public /state 2>/dev/null || true
+	chown -R "${PUID}:${PGID}" "$HUGO_DIR" /public /state 2>/dev/null || true
 	if command -v gosu >/dev/null 2>&1; then
 		exec gosu "${PUID}:${PGID}" "$@"
 	fi

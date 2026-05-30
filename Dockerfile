@@ -40,7 +40,7 @@ COPY --from=build /app/package.json /app/package.json
 COPY --from=site /site-src/site /app/site
 COPY docker/hugo/hugo.toml /app/defaults/hugo.toml
 COPY docker/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh && mkdir -p /site /public /state
+RUN chmod +x /entrypoint.sh && mkdir -p /hugo /public /state
 WORKDIR /app
 ENTRYPOINT ["/usr/bin/tini", "--", "/entrypoint.sh"]
 CMD ["node", "/app/dist/index.js"]

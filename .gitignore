@@ -7,6 +7,10 @@ dist/
 !/dev/public/.gitkeep
 /dev/state/*
 !/dev/state/.gitkeep
+/dev/hugo/content/posts/*.md
+/dev/hugo/static/img/*
+!dev/hugo/content/posts/.gitkeep
+!dev/hugo/static/img/.gitkeep
 /site/content/posts/*.md
 /site/static/img/*
 !site/content/posts/.gitkeep

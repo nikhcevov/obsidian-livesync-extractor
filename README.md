@@ -27,12 +27,27 @@ services:
       PUID: 1000
       PGID: 1000
     volumes:
-      - /srv/blog/public:/public
-      - /srv/blog/state:/state
-      - /srv/blog/config:/config
+      - /mnt/user/appdata/blog/hugo:/hugo
+      - /mnt/user/appdata/blog/public:/public
+      - /mnt/user/appdata/blog/state:/state
 ```
 
-Put your Hugo config at `/srv/blog/config/hugo.toml` (or `hugo.yml`). On first start with an empty config volume, the container seeds a default `hugo.toml` you can edit on the host.
+Expected host layout:
+
+```
+appdata/blog/
+├── compose.yaml
+├── hugo/
+│   ├── hugo.toml          # or hugo.yml / hugo.yaml
+│   ├── content/
+│   ├── static/            # favicon, robots.txt, avatar, …
+│   ├── themes/
+│   ├── layouts/           # optional PaperMod overrides
+│   └── assets/            # optional custom CSS
+└── public/                # Hugo output → Caddy
+```
+
+The publisher writes only `hugo/content/posts/` (generated markdown) and `hugo/static/img/` (images extracted from posts). Everything else is yours to edit on the host. On first start with an empty `hugo/` directory, the container seeds a default config, PaperMod theme, and archetypes.
 
 Point Caddy at `/srv/blog/public`:
 
@@ -69,7 +84,7 @@ slug: my-article
 
 - LiveSync binary docs (`type: newnote`) with image extensions are indexed
 - Obsidian wikilinks `![[image.png]]` and markdown `![](path)` are resolved
-- Files written to `/site/static/img/<hash>-<name>` and linked as `/img/...`
+- Files written to `/hugo/static/img/<hash>-<name>` and linked as `/img/...`
 - Reference counting removes orphaned images when posts are updated or unpublished
 
 ## Environment variables
@@ -87,18 +102,22 @@ slug: my-article
 | `MAX_IMAGE_BYTES`     | no       | `10485760`          | Max image size (10 MB)                      |
 | `IMAGE_EXTENSIONS`    | no       | see `.env.example`  | Allowed image extensions                    |
 | `PUID` / `PGID`       | no       | `1000`              | Volume ownership (Unraid-friendly)          |
+| `HUGO_SITE`           | no       | `/hugo`             | Hugo site directory inside container        |
+| `HUGO_DEST`           | no       | `/public`           | Hugo output directory                       |
+| `CONTENT_DIR`         | no       | `/hugo/content`     | Generated post markdown directory           |
+| `IMAGE_DIR`           | no       | `/hugo/static/img`  | Extracted post images directory             |
 
 ## Volumes
 
-| Mount     | Required | Purpose                                                |
-| --------- | -------- | ------------------------------------------------------ |
-| `/public` | yes      | Hugo output (serve via Caddy)                          |
-| `/state`  | yes      | `last_seq`, image refs, refcount                       |
-| `/config` | yes      | Hugo config (`hugo.toml`, `hugo.yml`, or `hugo.yaml`) |
+Use bind mounts, not named Docker volumes — easier to browse, edit, and back up on Unraid.
 
-On first start, if `/config` is empty, the container seeds a default `hugo.toml`. Edit it on the host and restart the container to apply changes. Site title, base URL, permalinks, and theme params all live in this file.
+| Mount     | Required | Purpose                                                       |
+| --------- | -------- | ------------------------------------------------------------- |
+| `/hugo`   | yes      | Full Hugo site (config, themes, static, layouts, assets)      |
+| `/public` | yes      | Hugo output (serve via Caddy)                                 |
+| `/state`  | yes      | `last_seq`, image refs, refcount                              |
 
-Optional: mount `/site/content` to inspect generated markdown on the host.
+Publisher writes only `/hugo/content/posts/` and `/hugo/static/img/`. Put `hugo.toml`, `hugo.yml`, or `hugo.yaml` at the root of `/hugo`. Restart the container after config changes.
 
 ## Local development
 
@@ -129,10 +148,11 @@ Seed fixtures live in `docker/dev/fixtures/` and include a published post, a dra
 
 Host bind mounts:
 
-| Path          | Purpose                          |
-| ------------- | -------------------------------- |
-| `dev/public/` | Hugo output (served by Caddy)    |
-| `dev/state/`  | `last_seq`, image refs, refcount |
+| Path            | Purpose                                              |
+| --------------- | ---------------------------------------------------- |
+| `dev/hugo/`     | Hugo site (config, themes, static — editable)        |
+| `dev/public/`   | Hugo output (served by Caddy)                        |
+| `dev/state/`    | `last_seq`, image refs, refcount                     |
 
 ### Make targets
 
@@ -150,7 +170,7 @@ Fresh start from scratch:
 make dev-reset && make dev
 ```
 
-`docker-compose.dev.yml` sets `COUCHDB_AUTO_CREATE=true` and `SITE_BASE_URL=http://localhost:8080/` so a fresh CouchDB gets the LiveSync database and Hugo links resolve correctly.
+`docker-compose.dev.yml` sets `COUCHDB_AUTO_CREATE=true`. Dev Hugo config lives in `dev/hugo/hugo.toml` (default `baseURL` is `http://localhost:8080/`).
 
 ### Connect Obsidian (optional)
 
@@ -213,6 +233,7 @@ All public post metadata lives in `post_*` fields. Obsidian `#tags`, frontmatter
 | Hugo build fails                              | `docker logs` — missing theme or invalid frontmatter                                                                                                                                                                                                                         |
 | Restart re-processes everything               | Delete `dev/state/last_seq.json` to force full bootstrap                                                                                                                                                                                                                     |
 | Site empty after first start                  | Wait for Hugo build in publisher logs (`build_finished`), or check `dev/public/`                                                                                                                                                                                             |
+| Hugo config changes ignored                 | Edit files under `hugo/` on the host and restart the container                                                                                                                                                                                                               |
 | Seed docs missing                             | Run `make dev-seed`, or `make dev-reset && make dev` for a clean database                                                                                                                                                                                                    |
 | `You are not a server admin` (401) on startup | `COUCHDB_USER` must be `admin`; password must match the existing CouchDB volume. After changing `COUCHDB_PASSWORD`, run `make dev-reset` to reset `couchdb_data`. If CouchDB logs show `Missing system database _users`, the volume is corrupt — `dev-reset` fixes that too. |
 
