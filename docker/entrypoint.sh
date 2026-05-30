@@ -3,16 +3,20 @@ set -eu
 
 PUID="${PUID:-1000}"
 PGID="${PGID:-1000}"
+CONFIG_DIR="/config"
 
-export SITE_BASE_URL="${SITE_BASE_URL:-http://localhost/}"
-export SITE_TITLE="${SITE_TITLE:-My Blog}"
-export SITE_LANGUAGE="${SITE_LANGUAGE:-en}"
-export PERMALINK_PATTERN="${PERMALINK_PATTERN:-/blog/:slug/}"
+mkdir -p "$CONFIG_DIR" /site /public /state /site/content/posts /site/static/img
 
-mkdir -p /site /public /state /site/content/posts /site/static/img
-
-envsubst '${SITE_BASE_URL} ${SITE_TITLE} ${SITE_LANGUAGE} ${PERMALINK_PATTERN}' \
-	</app/site/hugo.toml.tmpl >/site/hugo.toml
+if [ -f "$CONFIG_DIR/hugo.toml" ]; then
+	cp "$CONFIG_DIR/hugo.toml" /site/hugo.toml
+elif [ -f "$CONFIG_DIR/hugo.yml" ]; then
+	cp "$CONFIG_DIR/hugo.yml" /site/hugo.yml
+elif [ -f "$CONFIG_DIR/hugo.yaml" ]; then
+	cp "$CONFIG_DIR/hugo.yaml" /site/hugo.yaml
+else
+	cp /app/defaults/hugo.toml "$CONFIG_DIR/hugo.toml"
+	cp "$CONFIG_DIR/hugo.toml" /site/hugo.toml
+fi
 
 for dir in archetypes themes content static; do
 	if [ -d "/app/site/$dir" ]; then
@@ -21,7 +25,7 @@ for dir in archetypes themes content static; do
 done
 
 if [ "$(id -u)" = "0" ]; then
-	chown -R "${PUID}:${PGID}" /site /public /state 2>/dev/null || true
+	chown -R "${PUID}:${PGID}" "$CONFIG_DIR" /site /public /state 2>/dev/null || true
 	if command -v gosu >/dev/null 2>&1; then
 		exec gosu "${PUID}:${PGID}" "$@"
 	fi

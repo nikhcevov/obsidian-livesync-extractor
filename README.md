@@ -24,14 +24,15 @@ services:
       COUCHDB_DB: obsidian-livesync-v2
       COUCHDB_USER: admin
       COUCHDB_PASSWORD: ${COUCHDB_PASSWORD}
-      SITE_BASE_URL: https://blog.example.com/
-      SITE_TITLE: My Blog
       PUID: 1000
       PGID: 1000
     volumes:
       - /srv/blog/public:/public
       - /srv/blog/state:/state
+      - /srv/blog/config:/config
 ```
+
+Put your Hugo config at `/srv/blog/config/hugo.toml` (or `hugo.yml`). On first start with an empty config volume, the container seeds a default `hugo.toml` you can edit on the host.
 
 Point Caddy at `/srv/blog/public`:
 
@@ -80,10 +81,6 @@ slug: my-article
 | `COUCHDB_USER`        | no       | —                   | Username if not in URL                      |
 | `COUCHDB_PASSWORD`    | no       | —                   | Password if not in URL                      |
 | `COUCHDB_AUTO_CREATE` | no       | `false`             | Create DB on startup if missing (dev)       |
-| `SITE_BASE_URL`       | no       | `http://localhost/` | Hugo `baseURL`                              |
-| `SITE_TITLE`          | no       | `My Blog`           | Site title                                  |
-| `SITE_LANGUAGE`       | no       | `en`                | Hugo language code                          |
-| `PERMALINK_PATTERN`   | no       | `/blog/:slug/`      | Hugo permalink for posts                    |
 | `DEBOUNCE_MS`         | no       | `4000`              | Debounce window for rebuilds                |
 | `LOG_LEVEL`           | no       | `info`              | Pino log level                              |
 | `IMAGE_URL_PREFIX`    | no       | `/img`              | URL prefix in rewritten markdown            |
@@ -93,10 +90,13 @@ slug: my-article
 
 ## Volumes
 
-| Mount     | Required | Purpose                          |
-| --------- | -------- | -------------------------------- |
-| `/public` | yes      | Hugo output (serve via Caddy)    |
-| `/state`  | yes      | `last_seq`, image refs, refcount |
+| Mount     | Required | Purpose                                                |
+| --------- | -------- | ------------------------------------------------------ |
+| `/public` | yes      | Hugo output (serve via Caddy)                          |
+| `/state`  | yes      | `last_seq`, image refs, refcount                       |
+| `/config` | yes      | Hugo config (`hugo.toml`, `hugo.yml`, or `hugo.yaml`) |
+
+On first start, if `/config` is empty, the container seeds a default `hugo.toml`. Edit it on the host and restart the container to apply changes. Site title, base URL, permalinks, and theme params all live in this file.
 
 Optional: mount `/site/content` to inspect generated markdown on the host.
 

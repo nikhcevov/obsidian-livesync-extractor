@@ -47,10 +47,6 @@ services:
       COUCHDB_USER: admin
       COUCHDB_PASSWORD: ${COUCHDB_PASSWORD:-changeme}
       COUCHDB_AUTO_CREATE: "true"
-      SITE_BASE_URL: ${SITE_BASE_URL:-http://localhost:8080/}
-      SITE_TITLE: ${SITE_TITLE:-Dev Blog}
-      SITE_LANGUAGE: ${SITE_LANGUAGE:-en}
-      PERMALINK_PATTERN: ${PERMALINK_PATTERN:-/blog/:slug/}
       DEBOUNCE_MS: ${DEBOUNCE_MS:-4000}
       LOG_LEVEL: ${LOG_LEVEL:-info}
       PUID: ${PUID:-1000}
@@ -58,6 +54,7 @@ services:
     volumes:
       - ./dev/public:/public
       - ./dev/state:/state
+      - ./dev/config:/config
 
   caddy:
     image: caddy:2-alpine

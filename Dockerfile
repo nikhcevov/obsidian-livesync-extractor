@@ -31,13 +31,14 @@ LABEL org.opencontainers.image.title="livesync-publisher" \
     org.opencontainers.image.version="${VERSION}"
 ENV APP_VERSION="${VERSION}"
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gettext-base tini gosu ca-certificates \
+    tini gosu ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=hugo /usr/local/bin/hugo /usr/local/bin/hugo
 COPY --from=build /app/node_modules /app/node_modules
 COPY --from=build /app/dist /app/dist
 COPY --from=build /app/package.json /app/package.json
 COPY --from=site /site-src/site /app/site
+COPY docker/hugo/hugo.toml /app/defaults/hugo.toml
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh && mkdir -p /site /public /state
 WORKDIR /app

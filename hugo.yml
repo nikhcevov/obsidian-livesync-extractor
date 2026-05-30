@@ -1,0 +1,84 @@
+baseURL: "https://nikhcevov.me/"
+locale: "en-US"
+title: "Nikhcevov's Notes"
+theme: "PaperMod"
+
+enableRobotsTXT: true
+environment: production
+
+buildDrafts: false
+buildFuture: false
+buildExpired: false
+
+params:
+  env: production
+  homeInfoParams:
+    Title: Hi there 👋
+    Content: >
+      Notes about software engineering, self-hosting,
+      homelab, keyboards, photos and other boring stuff.
+  socialIcons:
+    - name: github
+      url: "https://github.com/nikhcevov"
+  defaultTheme: auto
+  disableThemeToggle: false
+  ShowCodeCopyButtons: true
+
+keywords:
+  - software engineering
+  - homelab
+  - self-hosting
+  - linux
+  - networking
+  - keyboards
+
+author: "Vladimir Ovechkin"
+
+defaultTheme: auto
+disableThemeToggle: false
+
+ShowReadingTime: true
+ShowWordCount: true
+
+ShowBreadCrumbs: true
+ShowPostNavLinks: true
+
+ShowCodeCopyButtons: true
+
+ShowRssButtonInSectionTermList: true
+
+UseHugoToc: true
+showtoc: true
+tocopen: false
+
+comments: false
+
+homeInfoParams:
+  Title: "Hello 👋"
+
+socialIcons:
+  - name: github
+    url: "https://github.com/nikhcevov"
+
+menu:
+  main:
+    - identifier: posts
+      name: Posts
+      url: /posts/
+      weight: 10
+    - identifier: tags
+      name: Tags
+      url: /tags/
+      weight: 20
+
+taxonomies:
+  tag: tags
+
+pygmentsUseClasses: true
+
+markup:
+  highlight:
+    noClasses: false
+    lineNos: false
+    codeFences: true
+    guessSyntax: true

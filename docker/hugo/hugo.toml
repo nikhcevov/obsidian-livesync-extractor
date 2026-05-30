@@ -1,6 +1,6 @@
-baseURL = "${SITE_BASE_URL}"
-title = "${SITE_TITLE}"
-languageCode = "${SITE_LANGUAGE}"
+baseURL = "http://localhost/"
+title = "My Blog"
+languageCode = "en"
 theme = "PaperMod"
 enableRobotsTXT = true
 enableGitInfo = false
@@ -17,7 +17,7 @@ enableGitInfo = false
   category = "categories"
 
 [permalinks]
-  posts = "${PERMALINK_PATTERN}"
+  posts = "/blog/:slug/"
 
 [params]
   env = "production"
